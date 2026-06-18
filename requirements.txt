@@ -8,3 +8,7 @@ pyserial>=3.5
 # (OpenCV cannot open this Realtek UVC device on macOS).
 pyobjc-framework-AVFoundation>=9.0 ; sys_platform == "darwin"
 pyobjc-framework-Quartz>=9.0 ; sys_platform == "darwin"
+# Tiny1C vendor command channel (FFC + sensor init) over libusb.
+pyusb>=1.2.1
+libusb>=1.0.26b5
+

@@ -39,7 +39,7 @@ def run_tshark(pcap: str, only_xu: bool) -> list[dict]:
         disp += " && usb.setup.wIndex == 0x0400"
     fields = [
         "frame.number", "frame.time_relative",
-        "usb.setup.bmRequestType", "usb.setup.bRequest",
+        "usb.bmRequestType", "usb.setup.bRequest",
         "usb.setup.wValue", "usb.setup.wIndex", "usb.setup.wLength",
         "usb.capdata", "usb.control.Response",
     ]

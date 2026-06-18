@@ -180,6 +180,15 @@ class MainWindow(QMainWindow):
         self._act_demo.triggered.connect(self._camera_widget.start_demo)
         tb.addAction(self._act_demo)
 
+        # Flat-field / shutter correction (NUC)
+        self._act_ffc = QAction("FFC", self)
+        self._act_ffc.setToolTip(
+            "Flat-Field Correction (shutter calibration).\n"
+            "Briefly closes the shutter to recalibrate the sensor."
+        )
+        self._act_ffc.triggered.connect(self._camera_widget.trigger_ffc)
+        tb.addAction(self._act_ffc)
+
         tb.addSeparator()
 
         # ── Measurement tools ──────────────────────────────────────────

@@ -237,3 +237,27 @@ def _decode_thermal(raw: np.ndarray, w: int, h: int):
         temp_map = None
     bgr = cv2.cvtColor(np.ascontiguousarray(image_luma), cv2.COLOR_GRAY2BGR)
     return True, bgr, temp_map
+
+
+# ----------------------------------------------------------------------
+# Tiny1C vendor commands (libusb): init that enables real data, and FFC.
+# These talk to interface 0, so they must run while AVFoundation does NOT
+# hold the device (i.e. before opening, or with the session stopped).
+# ----------------------------------------------------------------------
+
+def initialize_thermal() -> bool:
+    """Run the Tiny1C vendor init burst over libusb (enables real frame data)."""
+    try:
+        from . import tiny1c_commands
+        return tiny1c_commands.initialize_once()
+    except Exception:
+        return False
+
+
+def ffc_thermal() -> bool:
+    """Trigger a flat-field (shutter) correction over libusb."""
+    try:
+        from . import tiny1c_commands
+        return tiny1c_commands.ffc_once()
+    except Exception:
+        return False

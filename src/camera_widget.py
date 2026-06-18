@@ -99,6 +99,7 @@ class CameraWidget(QWidget):
 
         self._cap: cv2.VideoCapture | None = None
         self._av_cap = None  # camera_backend.AVFThermalCapture | None (macOS)
+        self._av_uid: str | None = None  # AVFoundation device id (for re-open)
         self._current_frame: np.ndarray | None = None
         self._display_pixmap: QPixmap | None = None
         self._connected = False
@@ -204,6 +205,15 @@ class CameraWidget(QWidget):
         thermal = next((d for d in devs if d["is_thermal"]), None)
         if thermal is None:
             return False
+        self._av_uid = thermal["unique_id"]
+
+        # Run the vendor init burst over libusb BEFORE AVFoundation opens the
+        # device (the init talks to interface 0, which the UVC driver claims
+        # once a capture session is running).  This is what makes the Tiny1C
+        # output real thermal data instead of the 0x8000 placeholder frame.
+        if camera_backend.initialize_thermal():
+            self.status_message.emit("Thermal sensor initialised (FFC/vendor init).")
+
         cap = camera_backend.AVFThermalCapture()
         if not cap.open(thermal["unique_id"]):
             cap.release()
@@ -221,6 +231,21 @@ class CameraWidget(QWidget):
                 blank = camera_backend.frame_is_blank(bgr, tmap)
                 break
             _t.sleep(0.05)
+
+        # If it's still blank, AVFoundation may have reset the sensor when it
+        # opened interface 0.  Stop the session, re-run init, and restart.
+        if blank:
+            cap.release()
+            camera_backend.initialize_thermal()
+            cap = camera_backend.AVFThermalCapture()
+            if cap.open(thermal["unique_id"]):
+                deadline = _t.time() + 1.5
+                while _t.time() < deadline:
+                    ok, bgr, tmap = cap.read()
+                    if ok and bgr is not None:
+                        blank = camera_backend.frame_is_blank(bgr, tmap)
+                        break
+                    _t.sleep(0.05)
 
         self._av_cap = cap
         self._cap = None
@@ -307,6 +332,34 @@ class CameraWidget(QWidget):
         self._overlay.clear_all()
         self._active_polygon = None
         self.update()
+
+    def trigger_ffc(self) -> bool:
+        """
+        Perform a flat-field (shutter) correction.
+
+        The FFC command goes over libusb to interface 0.  While the macOS
+        AVFoundation session is streaming it holds that interface, so we stop
+        the session, issue the FFC, and restart it (a brief video blip).
+        """
+        if self._av_cap is not None:
+            self._timer.stop()
+            self._av_cap.release()
+            ok = camera_backend.ffc_thermal()
+            # Re-open the AVFoundation stream.
+            self._av_cap = camera_backend.AVFThermalCapture()
+            if self._av_uid is not None:
+                self._av_cap.open(self._av_uid)
+            else:
+                self._av_cap.open()
+            self._timer.start()
+            self.status_message.emit(
+                "FFC complete." if ok else "FFC failed (could not access camera)."
+            )
+            return ok
+        # Non-AVFoundation path (e.g. libusbK on Windows): issue directly.
+        ok = camera_backend.ffc_thermal()
+        self.status_message.emit("FFC complete." if ok else "FFC unavailable.")
+        return ok
 
     def set_alarm_temps(self, max_t: float | None, min_t: float | None) -> None:
         self._alarm_max = max_t
