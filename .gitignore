@@ -1,0 +1,42 @@
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.installed.cfg
+*.egg
+
+# ── Virtual environments ────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Build / packaging output ────────────────────────────
+build/
+dist/
+*.app/
+*.dmg
+*.spec
+
+# ── macOS ───────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── IDE / editor ────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+
+# ── App runtime output ──────────────────────────────────
+captures/Picture/
+captures/Video/
+ErrLog/
+
+# ── Vendored SDK (large; fetched separately) ────────────
+# Uncomment if the InfiRay SDK is kept out of the repo:
+# third_party/infiray-SDK/
